@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BSEB Class 12 Smart Test</title>
+
+  <!-- CSS FILE -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- GOOGLE FONT -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+<!-- ================= LOADER ================= -->
+<div id="loader">
+  <div class="loader-circle"></div>
+  <p>Test Loading...</p>
+</div>
+
+<!-- ================= START PAGE ================= -->
+<section id="startPage" class="page active">
+
+  <div class="glass-card">
+    <h1 class="app-title">BSEB Class 12 Smart Test</h1>
+    <p class="subtitle">Hindi Medium • Subject Wise Practice</p>
+
+   <div class="input-group">
+  <label>छात्र का नाम</label>
+  <input type="text" id="studentName" placeholder="अपना पूरा नाम लिखें">
+</div>
+
+<div class="input-group">
+  <label>स्ट्रीम चुनें</label>
+  <select id="streamSelect">
+    <option value="">— Select Stream —</option>
+    <option value="science">Science</option>
+    <option value="arts">Arts</option>
+    <option value="commerce">Commerce</option>
+  </select>
+</div>
+
+<div class="input-group">
+  <label>विषय चुनें</label>
+  <select id="subject">
+    <option value="">— Select Subject —</option>
+  </select>
+</div>
+
+    <button class="primary-btn" id="startBtn">
+      Start Test
+    </button>
+
+
+    <p class="note">
+      प्रत्येक प्रश्न के लिए 30 सेकंड • कुल 50 प्रश्न
+    </p>
+  </div>
+
+</section>
+
+<!-- ================= TEST PAGE ================= -->
+<section id="testPage" class="page">
+
+  <!-- TOP BAR -->
+  <div class="test-header">
+    <div class="left">
+      <span id="questionCount">Q 1 / 50</span>
+    </div>
+    <div class="right timer-box">
+      <span id="timer">30</span>s
+    </div>
+  </div>
+
+  <!-- QUESTION CARD -->
+  <div class="question-card">
+    <h2 id="questionText">
+      यहाँ प्रश्न दिखेगा
+    </h2>
+
+    <div class="options">
+      <button class="option">Option A</button>
+      <button class="option">Option B</button>
+      <button class="option">Option C</button>
+      <button class="option">Option D</button>
+    </div>
+  </div>
+
+  <!-- ACTION BUTTONS -->
+  <div class="action-bar">
+    <button class="secondary-btn" id="nextBtn">Next</button>
+    <button class="danger-btn" id="finishBtn">Finish</button>
+  </div>
+
+</section>
+
+<!-- ================= RESULT PAGE ================= -->
+<section id="resultPage" class="page">
+
+  <div class="result-card">
+    <h1>Test Completed</h1>
+
+    <p id="resultName">Name: —</p>
+    <p id="resultSubject">Subject: —</p>
+
+    <div class="score-box">
+      <h2 id="scoreText">0 / 50</h2>
+      <p id="percentageText">0%</p>
+    </div>
+
+    <!-- ACTION BUTTONS -->
+    <div class="action-bar">
+      <button class="primary-btn" onclick="location.reload()">
+        Attempt Again
+      </button>
+
+      <button class="secondary-btn" onclick="location.href='review.html'">
+        Preview Answers
+      </button>
+    </div>
+  </div>
+
+</section>
+
+
+<div id="reviewPage" class="review-page hidden"></div>
+
+</section>
+
+<!-- ================= FOOTER ================= -->
+<footer>
+  <p>Designed by Jay Singh</p>
+</footer>
+
+<!-- JS FILE -->
+<script src="questions.js"></script>
+<script src="script.js"></script>
+
+
+</body>
+</html>
