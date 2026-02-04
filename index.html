@@ -3,13 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="theme-color" content="#0b1020">
   <title>BSEB Class 12 Smart Test</title>
 
-  <!-- CSS FILE -->
   <link rel="stylesheet" href="style.css">
-
-  <!-- GOOGLE FONT -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=Noto+Sans+Devanagari:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
@@ -20,39 +18,53 @@
   <p>Test Loading...</p>
 </div>
 
+<!-- ================= APP HEADER ================= -->
+<header class="app-header">
+  <div class="app-brand">
+    <span class="app-dot" aria-hidden="true"></span>
+    <span class="app-name">BSEB Smart Test</span>
+  </div>
+  <div class="app-actions">
+    <label class="theme-switch">
+      <input type="checkbox" class="theme-toggle-input" id="themeToggle">
+      <span class="switch-track" aria-hidden="true"></span>
+      <span class="switch-label">Dark Mode</span>
+    </label>
+  </div>
+</header>
+
 <!-- ================= START PAGE ================= -->
 <section id="startPage" class="page active">
 
   <div class="glass-card">
     <h1 class="app-title">BSEB Class 12 Smart Test</h1>
-    <p class="subtitle">Hindi Medium • Subject Wise Practice</p>
+    <p class="subtitle">हिंदी माध्यम • विषय अनुसार अभ्यास</p>
 
-   <div class="input-group">
-  <label>छात्र का नाम</label>
-  <input type="text" id="studentName" placeholder="अपना पूरा नाम लिखें">
-</div>
+    <div class="input-group">
+      <label>छात्र का नाम</label>
+      <input type="text" id="studentName" placeholder="अपना पूरा नाम लिखें">
+    </div>
 
-<div class="input-group">
-  <label>स्ट्रीम चुनें</label>
-  <select id="streamSelect">
-    <option value="">— Select Stream —</option>
-    <option value="science">Science</option>
-    <option value="arts">Arts</option>
-    <option value="commerce">Commerce</option>
-  </select>
-</div>
+    <div class="input-group">
+      <label>स्ट्रीम चुनें</label>
+      <select id="streamSelect">
+        <option value="">— स्ट्रीम चुनें —</option>
+        <option value="science">Science</option>
+        <option value="arts">Arts</option>
+        <option value="commerce">Commerce</option>
+      </select>
+    </div>
 
-<div class="input-group">
-  <label>विषय चुनें</label>
-  <select id="subject">
-    <option value="">— Select Subject —</option>
-  </select>
-</div>
+    <div class="input-group">
+      <label>विषय चुनें</label>
+      <select id="subject">
+        <option value="">— विषय चुनें —</option>
+      </select>
+    </div>
 
     <button class="primary-btn" id="startBtn">
       Start Test
     </button>
-
 
     <p class="note">
       प्रत्येक प्रश्न के लिए 30 सेकंड • कुल 50 प्रश्न
@@ -69,9 +81,24 @@
     <div class="left">
       <span id="questionCount">Q 1 / 50</span>
     </div>
-    <div class="right timer-box">
-      <span id="timer">30</span>s
+    <div class="right">
+      <button id="openGrid" class="ghost-btn" type="button">All Questions</button>
+      <label class="theme-switch compact">
+        <input type="checkbox" class="theme-toggle-input" id="themeToggleTest">
+        <span class="switch-track" aria-hidden="true"></span>
+      </label>
+      <div class="timer-box">
+        <span id="timer">30</span>s
+      </div>
     </div>
+  </div>
+
+  <div class="progress-wrap" aria-hidden="true">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+  <div class="status-row">
+    <span id="statusText">Progress</span>
+    <span id="markStatus" class="pill">Not Marked</span>
   </div>
 
   <!-- QUESTION CARD -->
@@ -90,8 +117,28 @@
 
   <!-- ACTION BUTTONS -->
   <div class="action-bar">
+    <button class="secondary-btn" id="prevBtn">Previous</button>
+    <button class="secondary-btn" id="markBtn">Mark for Review</button>
     <button class="secondary-btn" id="nextBtn">Next</button>
     <button class="danger-btn" id="finishBtn">Finish</button>
+  </div>
+
+  <div id="gridOverlay" class="grid-overlay hidden" aria-hidden="true">
+    <div class="grid-sheet">
+      <div class="grid-header">
+        <div>
+          <h3>Question List</h3>
+          <p class="note" id="gridMeta">50 Questions</p>
+        </div>
+        <button id="closeGrid" class="ghost-btn" type="button">Close</button>
+      </div>
+      <div class="grid-legend">
+        <span class="legend-item answered">Answered</span>
+        <span class="legend-item marked">Marked</span>
+        <span class="legend-item empty">Not Answered</span>
+      </div>
+      <div id="questionGrid" class="question-grid"></div>
+    </div>
   </div>
 
 </section>
@@ -110,34 +157,47 @@
       <p id="percentageText">0%</p>
     </div>
 
-    <!-- ACTION BUTTONS -->
+    <div class="result-breakdown">
+      <div class="breakdown-item">
+        <span>Correct</span>
+        <strong id="correctCount">0</strong>
+      </div>
+      <div class="breakdown-item">
+        <span>Wrong</span>
+        <strong id="wrongCount">0</strong>
+      </div>
+      <div class="breakdown-item">
+        <span>Skipped</span>
+        <strong id="skippedCount">0</strong>
+      </div>
+      <div class="breakdown-item">
+        <span>Time Spent</span>
+        <strong id="timeSpent">0m</strong>
+      </div>
+    </div>
+
     <div class="action-bar">
       <button class="primary-btn" onclick="location.reload()">
         Attempt Again
       </button>
 
       <button class="secondary-btn" onclick="location.href='review.html'">
-        Preview Answers
+        Go to Preview Page (Print PDF)
       </button>
     </div>
   </div>
 
 </section>
 
-
 <div id="reviewPage" class="review-page hidden"></div>
-
-</section>
 
 <!-- ================= FOOTER ================= -->
 <footer>
   <p>Designed by Jay Singh</p>
 </footer>
 
-<!-- JS FILE -->
 <script src="questions.js"></script>
 <script src="script.js"></script>
-
 
 </body>
 </html>

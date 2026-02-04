@@ -4,31 +4,47 @@
   <meta charset="UTF-8">
   <title>Answer Preview</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b1020">
   <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=Noto+Sans+Devanagari:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
 
-<!-- 🔴 IMPORTANT: data-page attribute -->
 <body data-page="review">
 
-<section class="page active">
+<header class="app-header">
+  <div class="app-brand">
+    <span class="app-dot" aria-hidden="true"></span>
+    <span class="app-name">Answer Preview</span>
+  </div>
+  <div class="app-actions">
+    <label class="theme-switch">
+      <input type="checkbox" class="theme-toggle-input" id="themeToggle">
+      <span class="switch-track" aria-hidden="true"></span>
+      <span class="switch-label">Dark Mode</span>
+    </label>
+  </div>
+</header>
+
+<section class="page active review-shell">
   <div class="glass-card">
-    <h2 style="text-align:center">Answer Preview</h2>
+    <h2 class="center-title">Answer Preview</h2>
     <p id="reviewInfo" class="note"></p>
   </div>
 
   <div id="reviewPage" class="review-page"></div>
 
-  <div style="text-align:center; margin:20px">
-    <button class="primary-btn" onclick="window.location.href='index.html'">
+  <div class="action-bar review-actions">
+    <button class="secondary-btn" onclick="window.location.href='index.html'">
       Back to Home
+    </button>
+    <button class="secondary-btn" id="printBtn" type="button">
+      Print to PDF
     </button>
   </div>
 </section>
 
-<!-- ✅ ONLY ONE SCRIPT, NO INLINE CALL -->
 <script src="questions.js"></script>
 <script src="script.js"></script>
-
 
 </body>
 </html>

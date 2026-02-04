@@ -3,10 +3,12 @@ let studentName = "";
 let currentStream = "";
 let subject = "";
 let currentIndex = 0;
-let score = 0;
 let timer = null;
 let timeLeft = 30;
 let userAnswers = [];
+let markedQuestions = [];
+let elapsedSeconds = 0;
+let testStartedAt = null;
 
 /* ================= STORAGE KEYS ================= */
 const PROGRESS_KEY = "bseb_test_progress";
@@ -45,10 +47,10 @@ function getCompletedSubjects(stream) {
   return d ? JSON.parse(d) : [];
 }
 
-function markSubjectCompleted(stream, subject) {
+function markSubjectCompleted(stream, subjectId) {
   const arr = getCompletedSubjects(stream);
-  if (!arr.includes(subject)) {
-    arr.push(subject);
+  if (!arr.includes(subjectId)) {
+    arr.push(subjectId);
     localStorage.setItem(completedKey(stream), JSON.stringify(arr));
   }
 }
@@ -60,23 +62,44 @@ const resultPage = document.getElementById("resultPage");
 
 const startBtn = document.getElementById("startBtn");
 const nextBtn = document.getElementById("nextBtn");
+const prevBtn = document.getElementById("prevBtn");
+const markBtn = document.getElementById("markBtn");
 const finishBtn = document.getElementById("finishBtn");
 
 const questionText = document.getElementById("questionText");
 const options = document.querySelectorAll(".option");
 const timerEl = document.getElementById("timer");
 const questionCount = document.getElementById("questionCount");
+const progressBar = document.getElementById("progressBar");
+const statusText = document.getElementById("statusText");
+const markStatus = document.getElementById("markStatus");
+
+const openGridBtn = document.getElementById("openGrid");
+const closeGridBtn = document.getElementById("closeGrid");
+const gridOverlay = document.getElementById("gridOverlay");
+const questionGrid = document.getElementById("questionGrid");
+const gridMeta = document.getElementById("gridMeta");
 
 const resultName = document.getElementById("resultName");
 const resultSubject = document.getElementById("resultSubject");
 const scoreText = document.getElementById("scoreText");
 const percentageText = document.getElementById("percentageText");
+const correctCountEl = document.getElementById("correctCount");
+const wrongCountEl = document.getElementById("wrongCount");
+const skippedCountEl = document.getElementById("skippedCount");
+const timeSpentEl = document.getElementById("timeSpent");
+const themeToggles = document.querySelectorAll(".theme-toggle-input");
+const printBtn = document.getElementById("printBtn");
+
+const THEME_KEY = "bseb_theme";
 
 /* ================= INIT ================= */
 document.addEventListener("DOMContentLoaded", () => {
   const pageType = document.body.getAttribute("data-page");
 
-  /* 🔹 REVIEW PAGE */
+  initTheme();
+  setAppMode();
+
   if (pageType === "review") {
     showReview();
     return;
@@ -89,7 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   streamSelect.addEventListener("change", () => {
     currentStream = streamSelect.value;
-    subjectSelect.innerHTML = `<option value="">— Select Subject —</option>`;
+    subjectSelect.innerHTML = `<option value="">— विषय चुनें —</option>`;
     subjectSelect.disabled = false;
 
     const completed = getCompletedSubjects(currentStream);
@@ -109,12 +132,23 @@ document.addEventListener("DOMContentLoaded", () => {
     renderResetButton();
   });
 
-  /* 🔹 RESUME CHECK */
   const saved = getSavedProgress();
   if (saved && saved.subject && saved.currentStream) {
     showResumeOption(saved);
   }
 });
+
+themeToggles.forEach(toggle => {
+  toggle.addEventListener("change", () => {
+    setTheme(toggle.checked ? "dark" : "light");
+  });
+});
+
+if (printBtn) {
+  printBtn.addEventListener("click", () => {
+    window.print();
+  });
+}
 
 /* ================= RESUME ================= */
 function showResumeOption(saved) {
@@ -135,11 +169,13 @@ function showResumeOption(saved) {
     studentName = saved.studentName;
     currentStream = saved.currentStream;
     subject = saved.subject;
-    currentIndex = saved.currentIndex;
-    score = saved.score;
+    currentIndex = saved.currentIndex || 0;
     userAnswers = saved.userAnswers || [];
+    markedQuestions = saved.markedQuestions || [];
+    elapsedSeconds = saved.elapsedSeconds || 0;
 
     switchPage(startPage, testPage);
+    startElapsedTimer();
     loadQuestion();
   };
 }
@@ -155,13 +191,15 @@ startBtn.onclick = () => {
   }
 
   if (getCompletedSubjects(currentStream).includes(subject)) {
-    alert("यह विषय पहले ही complete हो चुका है");
+    alert("यह विषय पहले ही पूरा हो चुका है");
     return;
   }
 
-  score = 0;
   currentIndex = 0;
   userAnswers = [];
+  markedQuestions = [];
+  elapsedSeconds = 0;
+  startElapsedTimer();
 
   saveProgress();
   switchPage(startPage, testPage);
@@ -181,9 +219,14 @@ function loadQuestion() {
 
   options.forEach((btn, i) => {
     btn.innerText = q.options[i];
+    btn.classList.toggle("selected", userAnswers[currentIndex] === i);
     btn.onclick = () => selectOption(i);
   });
 
+  updateProgressUI();
+  updateMarkUI();
+  updateNavUI();
+  renderQuestionGrid();
   startTimer();
 }
 
@@ -200,17 +243,19 @@ function startTimer() {
 function selectOption(i) {
   clearInterval(timer);
   userAnswers[currentIndex] = i;
-  if (i === QUESTIONS[subject][currentIndex].answer) score++;
   saveProgress();
   goNext();
 }
 
-/* ================= NEXT ================= */
+/* ================= NAV ================= */
 nextBtn.onclick = goNext;
+prevBtn.onclick = goPrev;
+markBtn.onclick = toggleMark;
 
 function goNext() {
-  if (userAnswers[currentIndex] === undefined)
+  if (userAnswers[currentIndex] === undefined) {
     userAnswers[currentIndex] = null;
+  }
 
   currentIndex++;
   saveProgress();
@@ -219,34 +264,138 @@ function goNext() {
   else finishTest();
 }
 
+function goPrev() {
+  if (currentIndex === 0) return;
+  currentIndex--;
+  saveProgress();
+  loadQuestion();
+}
+
+function goToQuestion(index) {
+  if (index < 0 || index >= QUESTIONS[subject].length) return;
+  currentIndex = index;
+  saveProgress();
+  loadQuestion();
+  hideGrid();
+}
+
+function toggleMark() {
+  markedQuestions[currentIndex] = !markedQuestions[currentIndex];
+  saveProgress();
+  updateMarkUI();
+  renderQuestionGrid();
+}
+
 /* ================= FINISH ================= */
 finishBtn.onclick = finishTest;
 
 function finishTest() {
   clearInterval(timer);
+  stopElapsedTimer();
 
   markSubjectCompleted(currentStream, subject);
-
-  /* 🔥 IMPORTANT: RESUME DATA CLEAR ONLY HERE */
   clearSavedProgress();
-
   renderResetButton();
 
   localStorage.setItem(REVIEW_KEY, JSON.stringify({
     subject,
-    userAnswers
+    userAnswers,
+    markedQuestions
   }));
 
   const total = QUESTIONS[subject].length;
-  const percent = Math.round((score / total) * 100);
+  const { correct, wrong, skipped } = calculateScore();
+  const percent = Math.round((correct / total) * 100);
 
   resultName.innerText = `Name: ${studentName}`;
   resultSubject.innerText =
     `Subject: ${formatSubject(subject)} (${currentStream.toUpperCase()})`;
-  scoreText.innerText = `${score} / ${total}`;
+  scoreText.innerText = `${correct} / ${total}`;
   percentageText.innerText = `${percent}%`;
 
+  correctCountEl.innerText = correct;
+  wrongCountEl.innerText = wrong;
+  skippedCountEl.innerText = skipped;
+  timeSpentEl.innerText = formatDuration(elapsedSeconds);
+
   switchPage(testPage, resultPage);
+}
+
+function calculateScore() {
+  let correct = 0;
+  let wrong = 0;
+  let skipped = 0;
+
+  QUESTIONS[subject].forEach((q, idx) => {
+    const ans = userAnswers[idx];
+    if (ans === null || ans === undefined) skipped++;
+    else if (ans === q.answer) correct++;
+    else wrong++;
+  });
+
+  return { correct, wrong, skipped };
+}
+
+/* ================= GRID ================= */
+if (openGridBtn) openGridBtn.onclick = showGrid;
+if (closeGridBtn) closeGridBtn.onclick = hideGrid;
+
+function showGrid() {
+  if (!gridOverlay) return;
+  gridOverlay.classList.remove("hidden");
+  gridOverlay.setAttribute("aria-hidden", "false");
+}
+
+function hideGrid() {
+  if (!gridOverlay) return;
+  gridOverlay.classList.add("hidden");
+  gridOverlay.setAttribute("aria-hidden", "true");
+}
+
+function renderQuestionGrid() {
+  if (!questionGrid || !gridMeta) return;
+  const total = QUESTIONS[subject].length;
+  questionGrid.innerHTML = "";
+  gridMeta.innerText = `${total} Questions`;
+
+  for (let i = 0; i < total; i++) {
+    const btn = document.createElement("button");
+    btn.className = "grid-btn";
+    btn.innerText = i + 1;
+
+    if (userAnswers[i] !== undefined && userAnswers[i] !== null) {
+      btn.classList.add("answered");
+    }
+    if (markedQuestions[i]) {
+      btn.classList.add("marked");
+    }
+    if (i === currentIndex) {
+      btn.classList.add("current");
+    }
+
+    btn.onclick = () => goToQuestion(i);
+    questionGrid.appendChild(btn);
+  }
+}
+
+/* ================= UI HELPERS ================= */
+function updateProgressUI() {
+  const total = QUESTIONS[subject].length;
+  const progress = Math.round(((currentIndex + 1) / total) * 100);
+  progressBar.style.width = `${progress}%`;
+  statusText.innerText = `Question ${currentIndex + 1} of ${total}`;
+}
+
+function updateMarkUI() {
+  const isMarked = !!markedQuestions[currentIndex];
+  markBtn.innerText = isMarked ? "Marked" : "Mark for Review";
+  markStatus.innerText = isMarked ? "Marked" : "Not Marked";
+  markStatus.classList.toggle("marked", isMarked);
+}
+
+function updateNavUI() {
+  prevBtn.disabled = currentIndex === 0;
+  prevBtn.style.opacity = prevBtn.disabled ? "0.6" : "1";
 }
 
 /* ================= RESET BUTTON ================= */
@@ -273,7 +422,7 @@ function renderResetButton() {
 }
 
 function resetAllSubjects() {
-  if (!confirm("इस stream के सभी subjects reset कर दें?")) return;
+  if (!confirm("इस स्ट्रीम के सभी विषय रीसेट कर दें?")) return;
 
   localStorage.removeItem(completedKey(currentStream));
   clearSavedProgress();
@@ -287,7 +436,8 @@ function showReview() {
   if (!data) return;
 
   subject = data.subject;
-  userAnswers = data.userAnswers;
+  userAnswers = data.userAnswers || [];
+  markedQuestions = data.markedQuestions || [];
 
   const reviewPage = document.getElementById("reviewPage");
   const reviewInfo = document.getElementById("reviewInfo");
@@ -310,12 +460,19 @@ function showReview() {
         div.classList.add("wrong");
       else if (idx === q.answer)
         div.classList.add("right-answer");
-      else if (userAnswers[i] === null)
+      else if (userAnswers[i] === null || userAnswers[i] === undefined)
         div.classList.add("not-attempted");
 
       div.innerText = opt;
       card.appendChild(div);
     });
+
+    if (markedQuestions[i]) {
+      const tag = document.createElement("div");
+      tag.className = "review-tag";
+      tag.innerText = "Marked for Review";
+      card.appendChild(tag);
+    }
 
     reviewPage.appendChild(card);
   });
@@ -328,8 +485,9 @@ function saveProgress() {
     currentStream,
     subject,
     currentIndex,
-    score,
-    userAnswers
+    userAnswers,
+    markedQuestions,
+    elapsedSeconds: getElapsedSeconds()
   }));
 }
 
@@ -342,6 +500,29 @@ function clearSavedProgress() {
   localStorage.removeItem(PROGRESS_KEY);
 }
 
+/* ================= TIMER HELPERS ================= */
+function startElapsedTimer() {
+  testStartedAt = Date.now();
+}
+
+function stopElapsedTimer() {
+  if (!testStartedAt) return;
+  elapsedSeconds += Math.floor((Date.now() - testStartedAt) / 1000);
+  testStartedAt = null;
+}
+
+function getElapsedSeconds() {
+  if (!testStartedAt) return elapsedSeconds;
+  return elapsedSeconds + Math.floor((Date.now() - testStartedAt) / 1000);
+}
+
+function formatDuration(totalSeconds) {
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  if (mins <= 0) return `${secs}s`;
+  return `${mins}m ${secs}s`;
+}
+
 /* ================= UTILS ================= */
 function formatSubject(s) {
   return s.replace("_", " ").replace(/\b\w/g, c => c.toUpperCase());
@@ -350,4 +531,28 @@ function formatSubject(s) {
 function switchPage(a, b) {
   a.classList.remove("active");
   b.classList.add("active");
+  setAppMode();
+}
+
+/* ================= THEME ================= */
+function initTheme() {
+  const saved = localStorage.getItem(THEME_KEY) || "light";
+  applyTheme(saved);
+}
+
+function setTheme(mode) {
+  localStorage.setItem(THEME_KEY, mode);
+  applyTheme(mode);
+}
+
+function applyTheme(mode) {
+  document.body.classList.toggle("theme-dark", mode === "dark");
+  themeToggles.forEach(toggle => {
+    toggle.checked = mode === "dark";
+  });
+}
+
+function setAppMode() {
+  const inTest = testPage && testPage.classList.contains("active");
+  document.body.classList.toggle("in-test", !!inTest);
 }
